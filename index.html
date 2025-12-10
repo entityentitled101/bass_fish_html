@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>清水生态鲈 - 为家人选择更好的鱼</title>
+    
+    <!-- 1. 引入 Tailwind CSS (样式库) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#0B7BA7',
+              accent: '#2D8B6A',
+              teal: '#17A798',
+              warm: '#F5F0E8',
+              cream: '#FDFAF4',
+              textDark: '#2A2A2A',
+              textGray: '#666666',
+            },
+            fontFamily: {
+              serif: ['SimSun', '宋体', 'serif'],
+              sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'PingFang SC', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- 2. 引入 React 和 Babel (核心运行库) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* 隐藏滚动条但保留功能 */
+      .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+      }
+      .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+      /* 防止移动端下拉刷新时的背景白边 */
+      body {
+        background: linear-gradient(135deg, #f5f0e8 0%, #fdfaf4 100%);
+        overscroll-behavior-y: none;
+      }
+      /* 简单的淡入动画 */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fadeIn {
+        animation: fadeIn 0.5s ease-out;
+      }
+      @keyframes scaleIn {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .animate-scaleIn {
+        animation: scaleIn 0.3s ease-out;
+      }
+      /* 初始加载时的 loading 样式 */
+      #loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #F5F0E8;
+        z-index: 9999;
+        transition: opacity 0.5s;
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "vite": "https://aistudiocdn.com/vite@^7.2.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <!-- 初始 Loading 界面，React 加载后会被替换 -->
+    <div id="root">
+      <div id="loading">
+        <div class="text-[#0B7BA7] font-serif text-xl animate-pulse">正在加载清水生态...</div>
+      </div>
+    </div>
+
+    <!-- 3. 核心 React 代码 (Babel 会自动编译 JSX) -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Constants & Config ---
+        const Tab = {
+            HOME: 'HOME',
+            BREEDING: 'BREEDING',
+            REPORT: 'REPORT',
+            REVIEW: 'REVIEW',
+            PURCHASE: 'PURCHASE'
+        };
+
+        const BASE_URL = "https://cdn.jsdelivr.net/gh/entityentitled101/bass_fish_photos@main";
+
+        // --- 1. Icons 组件 ---
+        const HomeIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" className={className} stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+        );
+
+        const BreedingIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" className={className} stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 18c-1 1-1 2-1 4s0 3 1 4M17 18c1 1 1 2 1 4s0 3-1 4M4 6h16v8a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6V6z"/>
+            </svg>
+        );
+
+        const ReportIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" className={className} stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        );
+
+        const ReviewIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" className={className} stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+        );
+
+        const PurchaseIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" className={className} stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+        );
+
+        const StepMudIcon = () => (
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" className="w-6 h-6">
+                <circle cx="12" cy="12" r="9" stroke="#2D8B6A"/><path d="M12 7v10M7 12h10" stroke="#0B7BA7" strokeLinecap="round"/>
+            </svg>
+        );
+
+        const StepGrassIcon = () => (
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" className="w-6 h-6">
+                <path d="M12 2L20 7v10c0 5-8 8-8 8s-8-3-8-8V7l8-5z" stroke="#2D8B6A"/><line x1="12" y1="12" x2="12" y2="18" stroke="#0B7BA7"/>
+            </svg>
+        );
+
+        const StepWaterIcon = () => (
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" className="w-6 h-6">
+                <path d="M12 2c-1 0-2 1-2 2v8c0 1 1 2 2 2s2-1 2-2V4c0-1-1-2-2-2z" stroke="#0B7BA7"/><path d="M8 10c-1 0-2 1-2 2v7c0 2 2 3 4 3h4c2 0 4-1 4-3v-7c0-1-1-2-2-2" stroke="#2D8B6A"/>
+            </svg>
+        );
+
+        const StepFishIcon = () => (
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" className="w-6 h-6">
+                <path d="M12 2c2 2 4 4 4 8v8c0 1-1 2-2 2h-4c-1 0-2-1-2-2v-8c0-4 2-6 4-8z" stroke="#0B7BA7"/><path d="M8 10c-2 1-3 3-3 6v4c0 1 1 1 2 1M16 10c2 1 3 3 3 6v4c0 1-1 1-2 1" stroke="#2D8B6A"/>
+            </svg>
+        );
+
+        // --- 2. Common Components ---
+
+        const Carousel = ({ images, aspectRatio = "aspect-square", autoPlayInterval = 5000 }) => {
+            const [currentIndex, setCurrentIndex] = useState(0);
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                setCurrentIndex((prev) => (prev + 1) % images.length);
+                }, autoPlayInterval);
+                return () => clearInterval(timer);
+            }, [images.length, autoPlayInterval]);
+
+            const prevSlide = () => {
+                setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+            };
+
+            const nextSlide = () => {
+                setCurrentIndex((prev) => (prev + 1) % images.length);
+            };
+
+            return (
+                <div className={`relative w-full overflow-hidden rounded-xl shadow-lg ${aspectRatio} bg-gray-100`}>
+                <div 
+                    className="flex transition-transform duration-500 ease-out h-full"
+                    style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                    {images.map((img, idx) => (
+                    <div key={idx} className="min-w-full h-full">
+                        <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
+                    </div>
+                    ))}
+                </div>
+
+                <button 
+                    onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                    className="absolute top-1/2 left-2 -translate-y-1/2 w-9 h-9 bg-white/90 border border-primary/20 rounded-full flex items-center justify-center text-primary text-xl shadow-md hover:scale-110 active:scale-95 transition-all z-10"
+                >
+                    ‹
+                </button>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                    className="absolute top-1/2 right-2 -translate-y-1/2 w-9 h-9 bg-white/90 border border-primary/20 rounded-full flex items-center justify-center text-primary text-xl shadow-md hover:scale-110 active:scale-95 transition-all z-10"
+                >
+                    ›
+                </button>
+
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {images.map((_, idx) => (
+                    <div 
+                        key={idx}
+                        onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
+                        className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer border border-primary/30 ${idx === currentIndex ? 'w-4 bg-primary' : 'w-1.5 bg-white/60'}`}
+                    />
+                    ))}
+                </div>
+                </div>
+            );
+        };
+
+        const Modal = ({ isOpen, onClose, children }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+                <div 
+                    className="bg-white rounded-2xl w-[90%] max-h-[85vh] overflow-y-auto relative animate-scaleIn p-4"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <button 
+                    onClick={onClose}
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                    >
+                    ✕
+                    </button>
+                    {children}
+                </div>
+                </div>
+            );
+        };
+
+        const BottomNav = ({ activeTab, onTabChange }) => {
+            const navItems = [
+                { id: Tab.HOME, label: '首页', icon: HomeIcon },
+                { id: Tab.BREEDING, label: '养殖', icon: BreedingIcon },
+                { id: Tab.REPORT, label: '检测', icon: ReportIcon },
+                { id: Tab.REVIEW, label: '评价', icon: ReviewIcon },
+                { id: Tab.PURCHASE, label: '购买', icon: PurchaseIcon },
+            ];
+
+            return (
+                <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[#e8e0d5] pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                <div className="flex justify-around items-center">
+                    {navItems.map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => onTabChange(item.id)}
+                        className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${
+                        activeTab === item.id ? 'text-primary' : 'text-textGray'
+                        }`}
+                    >
+                        <div className="w-6 h-6 flex items-center justify-center">
+                        <item.icon className={`w-5 h-5 transition-transform duration-300 ${activeTab === item.id ? 'scale-110 stroke-[2.5px]' : ''}`} />
+                        </div>
+                        <span className={`text-[10px] font-medium transition-colors ${activeTab === item.id ? 'text-primary' : 'text-textGray/80'}`}>
+                        {item.label}
+                        </span>
+                    </button>
+                    ))}
+                </div>
+                </div>
+            );
+        };
+
+        // --- 3. Pages ---
+
+        const Home = ({ setTab }) => {
+            const images = [
+                { src: `${BASE_URL}/product1.jpg`, alt: '清水生态无抗鲈鱼' },
+                { src: `${BASE_URL}/product2.jpg`, alt: '12个月生态放养' },
+                { src: `${BASE_URL}/product3.jpg`, alt: '检验检测报告' },
+                { src: `${BASE_URL}/product4.jpg`, alt: '清蒸鲈鱼' },
+                { src: `${BASE_URL}/product5.jpg`, alt: '鲜活现杀' },
+            ];
+
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[inherit] p-6 text-center animate-fadeIn pb-32">
+                <div className="w-full max-w-[340px] mb-8 shadow-xl rounded-xl overflow-hidden">
+                    <Carousel images={images} aspectRatio="aspect-video" />
+                </div>
+
+                <h1 className="text-4xl font-bold text-primary font-serif leading-tight mb-3 tracking-tight">
+                    清水生态<br />健康之选
+                </h1>
+                <p className="text-sm text-textGray leading-relaxed font-normal tracking-wide max-w-[280px] mb-8">
+                    生态养殖 | 零抗生素 | 专家背书
+                </p>
+                
+                <button 
+                    onClick={() => setTab(Tab.BREEDING)}
+                    className="w-[200px] h-12 border-2 border-primary text-primary text-[15px] font-semibold rounded-lg font-serif hover:bg-primary hover:text-white hover:shadow-lg transition-all active:scale-95"
+                >
+                    开始探索 →
+                </button>
+                </div>
+            );
+        };
+
+        const Breeding = () => {
+            const [activeStep, setActiveStep] = useState(null);
+            const [activeBase, setActiveBase] = useState(null);
+            const [currentExpert, setCurrentExpert] = useState(0);
+
+            const steps = [
+                {
+                    title: "养泥",
+                    desc: "3-4年底质改良",
+                    icon: StepMudIcon,
+                    content: "底泥改良是基础。养殖前用石灰和微生物预处理，种植水草，长期保持好氧环境，让螺贝等底栖动物自然净化残饵和排泄物。"
+                },
+                {
+                    title: "养草",
+                    desc: "水下森林自净",
+                    icon: StepGrassIcon,
+                    content: "水草是生态系统的核心。它既能净化水质、处理底泥污染，还能为鱼类提供躲避空间，形成自然的生态平衡。"
+                },
+                {
+                    title: "养水",
+                    desc: "氨氮<0.2mg/L | 透明度>120cm",
+                    icon: StepWaterIcon,
+                    content: "严格的水质标准是保障。通过水草自净和生态食物链的循环，实现水质优于国家III类标准，无需化学处理。"
+                },
+                {
+                    title: "养鱼",
+                    desc: "生态食物链养殖",
+                    icon: StepFishIcon,
+                    content: "低密度散养，让鱼在模拟野生环境中生长。主要食物来自生态链中的小型水生动物，全程不用药、不激素，鱼体更健康。"
+                }
+            ];
+
+            const bases = [
+                {
+                    title: "宜兴西氿基地",
+                    items: ["300亩养殖基地 + 研究中心", "劣V类 → III类水体改造", "太湖治理示范工程"],
+                    image: `${BASE_URL}/base%20(1).jpg`
+                },
+                {
+                    title: "绍兴八福基地",
+                    items: ["210亩养殖基地", "养殖废水零排放", "城市周边生态养殖样板"],
+                    image: `${BASE_URL}/base%20(2).jpg`
+                }
+            ];
+
+            const experts = [
+                { name: "宗兵年", image: `${BASE_URL}/professional%20(1).jpg` },
+                { name: "赵金良", image: `${BASE_URL}/professional%20(2).jpg` }
+            ];
+
+            return (
+                <div className="p-4 space-y-6 pb-32 animate-fadeIn">
+                <div className="px-2">
+                    <h2 className="text-2xl font-bold font-serif mb-1 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">好水出好鱼</h2>
+                    <p className="text-xs text-textGray">对比一览</p>
+                </div>
+
+                <div className="flex flex-col gap-3 px-2">
+                    <div className="bg-gradient-to-br from-white to-cream rounded-2xl p-4 shadow-sm border border-warm">
+                    <div className="w-full h-32 bg-gray-100 rounded-xl mb-3 overflow-hidden">
+                        <img src={`${BASE_URL}/contrast%20(1).jpg`} alt="传统养殖" className="w-full h-full object-cover opacity-90" />
+                    </div>
+                    <div className="font-bold text-textDark mb-2 text-base font-serif">传统养殖</div>
+                    <div className="text-xs text-textGray leading-relaxed">水质等级：V类<br/>密度：2000-8000斤/亩<br/>频繁用药</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-white to-cream rounded-2xl p-4 shadow-sm border border-warm">
+                    <div className="w-full h-32 bg-gray-100 rounded-xl mb-3 overflow-hidden shadow-md">
+                        <img src={`${BASE_URL}/contrast%20(2).jpg`} alt="清水生态" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="font-bold text-textDark mb-2 text-base font-serif">清水生态</div>
+                    <div className="text-xs text-textGray leading-relaxed">水质等级：III类<br/>密度：≈500斤/亩<br/>全程零抗</div>
+                    </div>
+                </div>
+
+                <div className="px-2">
+                    <h3 className="text-lg font-bold text-textDark font-serif mb-1">四养逻辑</h3>
+                    <p className="text-xs text-textGray mb-4">养鱼先养水，养水先养泥</p>
+                    <div className="flex flex-col gap-3">
+                    {steps.map((step, idx) => (
+                        <div 
+                        key={idx}
+                        onClick={() => setActiveStep(activeStep === idx ? null : idx)}
+                        className={`relative rounded-xl p-3 flex flex-col gap-3 transition-all duration-300 border cursor-pointer
+                            ${activeStep === idx 
+                            ? 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary shadow-md' 
+                            : 'bg-gradient-to-br from-cream to-warm border-warm shadow-sm hover:shadow-md'
+                            }
+                        `}
+                        >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-teal rounded-l-xl"></div>
+                        <div className="flex items-center gap-3 pl-2">
+                            <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg shrink-0">
+                            <step.icon />
+                            </div>
+                            <div className="flex-1">
+                            <div className="font-bold text-textDark text-[15px] font-serif">{step.title}</div>
+                            <div className="text-xs text-textGray">{step.desc}</div>
+                            </div>
+                            <div className={`text-primary font-bold text-lg transition-transform duration-300 ${activeStep === idx ? 'rotate-180' : ''}`}>
+                            ▼
+                            </div>
+                        </div>
+                        <div className={`overflow-hidden transition-all duration-300 ${activeStep === idx ? 'max-h-40 border-t border-primary/10 pt-3 mt-1' : 'max-h-0'}`}>
+                            <p className="text-xs text-textGray leading-relaxed">{step.content}</p>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
+                </div>
+
+                <div className="px-2">
+                    <h3 className="text-lg font-bold text-textDark font-serif mb-3">生态基地</h3>
+                    <div className="flex flex-col gap-3">
+                    {bases.map((base, idx) => (
+                        <div 
+                        key={idx}
+                        onClick={() => setActiveBase(activeBase === idx ? null : idx)}
+                        className="bg-gradient-to-br from-white to-cream rounded-xl p-4 border border-warm shadow-sm relative overflow-hidden"
+                        >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal"></div>
+                        <div className="flex justify-between items-center pl-3">
+                            <div className="font-bold text-primary text-[15px] font-serif">{base.title}</div>
+                            <div className={`text-teal transition-transform duration-300 ${activeBase === idx ? 'rotate-90' : ''}`}>➤</div>
+                        </div>
+                        <div className={`transition-all duration-300 overflow-hidden ${activeBase === idx ? 'max-h-[300px] mt-3' : 'max-h-0'}`}>
+                            <div className="space-y-1.5 pl-3">
+                            {base.items.map((item, i) => (
+                                <div key={i} className="text-xs text-textGray flex items-start gap-1">
+                                <span className="text-teal font-bold">✓</span>
+                                <span>{item}</span>
+                                </div>
+                            ))}
+                            <div className="mt-3 rounded-lg overflow-hidden h-40 w-full shadow-inner">
+                                <img src={base.image} alt={base.title} className="w-full h-full object-cover" />
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
+                </div>
+
+                <div className="px-2 pb-4">
+                    <div className="bg-gradient-to-br from-white to-cream rounded-xl p-4 shadow-sm border border-warm">
+                    <div className="text-[15px] font-bold text-textDark font-serif mb-3">专家背书</div>
+                    <div className="text-xs text-textGray leading-relaxed mb-4 text-justify">
+                        同济大学农业环境与生态研究所与海洋大学淡水渔业研究中心联合，由资深水生生态学专家团队潜心三年研发。以"绿色、生态、环保"为核心理念，打造优质的水生态环境。
+                    </div>
+                    
+                    <div className="relative overflow-hidden rounded-lg shadow-md">
+                        <div className="w-full aspect-video bg-gray-100 relative">
+                        <img src={experts[currentExpert].image} alt={experts[currentExpert].name} className="w-full h-full object-cover" />
+                        <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/70 to-transparent pt-8 pb-3 text-white text-center">
+                            <div className="text-lg font-serif font-bold tracking-widest">{experts[currentExpert].name}</div>
+                        </div>
+                        </div>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setCurrentExpert(curr => (curr - 1 + experts.length) % experts.length) }}
+                            className="absolute top-1/2 left-2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center text-primary shadow-lg"
+                        >‹</button>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setCurrentExpert(curr => (curr + 1) % experts.length) }}
+                            className="absolute top-1/2 right-2 -translate-y-1/2 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center text-primary shadow-lg"
+                        >›</button>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const Report = () => {
+            const [modalImage, setModalImage] = useState(null);
+            const [currentIndex, setCurrentIndex] = useState(0);
+
+            const reports = [
+                { page: 1, src: `${BASE_URL}/test%20(1).png` },
+                { page: 2, src: `${BASE_URL}/test%20(2).png` },
+                { page: 3, src: `${BASE_URL}/test%20(3).png` },
+                { page: 4, src: `${BASE_URL}/test%20(4).png` }
+            ];
+
+            const prevSlide = (e) => {
+                e.stopPropagation();
+                setCurrentIndex((prev) => (prev - 1 + reports.length) % reports.length);
+            };
+
+            const nextSlide = (e) => {
+                e.stopPropagation();
+                setCurrentIndex((prev) => (prev + 1) % reports.length);
+            };
+
+            const currentReport = reports[currentIndex];
+
+            return (
+                <div className="p-4 min-h-screen pb-32 animate-fadeIn">
+                <div className="px-2 mb-4">
+                    <h2 className="text-2xl font-bold font-serif mb-1 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">权威检测</h2>
+                    <p className="text-xs text-textGray">绿城农科检测技术公司认证</p>
+                </div>
+
+                <div className="flex flex-col items-center">
+                    <div className="w-full bg-gradient-to-br from-white to-cream rounded-2xl p-4 shadow-md border border-warm text-center relative">
+                        <div className="text-[11px] text-teal font-bold mb-3 flex justify-between items-center">
+                        <span>检测报告 第{currentReport.page}页 / 共{reports.length}页</span>
+                        <span className="text-[9px] bg-teal/10 px-2 py-0.5 rounded-full text-teal">点击查看大图</span>
+                        </div>
+                        
+                        <div 
+                        className="w-full aspect-[3/4.2] bg-white rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-all border border-gray-100 relative group"
+                        onClick={() => setModalImage(currentReport.src)}
+                        >
+                        {/* Image */}
+                        <div className="w-full h-full relative">
+                            <img 
+                                src={currentReport.src} 
+                                alt={`报告 ${currentReport.page}`} 
+                                className="w-full h-full object-cover transition-transform duration-500" 
+                            />
+                        </div>
+
+                        {/* Navigation Buttons - Overlay */}
+                        <button 
+                            onClick={prevSlide}
+                            className="absolute top-1/2 left-2 -translate-y-1/2 w-9 h-9 bg-white/90 border border-primary/20 rounded-full flex items-center justify-center text-primary text-xl shadow-md hover:scale-110 active:scale-95 transition-all z-10"
+                        >
+                            ‹
+                        </button>
+                        <button 
+                            onClick={nextSlide}
+                            className="absolute top-1/2 right-2 -translate-y-1/2 w-9 h-9 bg-white/90 border border-primary/20 rounded-full flex items-center justify-center text-primary text-xl shadow-md hover:scale-110 active:scale-95 transition-all z-10"
+                        >
+                            ›
+                        </button>
+                        </div>
+                        
+                        {/* Dots Indicator */}
+                        <div className="flex justify-center gap-1.5 mt-4">
+                            {reports.map((_, idx) => (
+                            <div 
+                                key={idx}
+                                onClick={() => setCurrentIndex(idx)}
+                                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer border border-primary/30 ${idx === currentIndex ? 'w-4 bg-primary' : 'w-1.5 bg-gray-300'}`}
+                            />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <Modal isOpen={!!modalImage} onClose={() => setModalImage(null)}>
+                    {modalImage && (
+                    <div className="flex flex-col items-center">
+                        <img src={modalImage} alt="Report Detail" className="w-full h-auto rounded-lg shadow-2xl" />
+                        <div className="mt-4 text-gray-500 text-xs">双指捏合可缩放 (模拟)</div>
+                    </div>
+                    )}
+                </Modal>
+                </div>
+            );
+        };
+
+        const Review = () => {
+            const dishImages = [
+                { src: `${BASE_URL}/dishes%20(1).jpg`, alt: '消费场景1' },
+                { src: `${BASE_URL}/dishes%20(2).jpg`, alt: '消费场景2' },
+                { src: `${BASE_URL}/dishes%20(3).jpg`, alt: '消费场景3' },
+            ];
+
+            return (
+                <div className="p-4 pb-32 animate-fadeIn">
+                <div className="px-2 mb-4">
+                    <h2 className="text-2xl font-bold font-serif mb-1 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">营养丰富</h2>
+                    <p className="text-xs text-textGray">鲜味十足</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-white to-cream rounded-2xl p-5 mb-6 shadow-sm border border-warm flex flex-col items-center text-center">
+                    <div className="w-48 h-48 bg-gray-100 rounded-xl mb-6 overflow-hidden shadow-inner p-2">
+                    <img src={`${BASE_URL}/nutrition.jpg`} alt="鲈鱼" className="w-full h-full object-contain mix-blend-multiply" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 w-full mb-4">
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-3 border border-primary/10">
+                        <div className="text-xl font-bold text-primary font-serif">18.6</div>
+                        <div className="text-[11px] text-textGray">高蛋白<br/>g/100g</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-3 border border-primary/10">
+                        <div className="text-xl font-bold text-primary font-serif">860</div>
+                        <div className="text-[11px] text-textGray">DHA含量<br/>mg/100g</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-3 border border-primary/10">
+                        <div className="text-xl font-bold text-primary font-serif">3.5</div>
+                        <div className="text-[11px] text-textGray">低脂肪<br/>%</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-3 border border-primary/10">
+                        <div className="text-xl font-bold text-primary font-serif">0</div>
+                        <div className="text-[11px] text-textGray">零腥味<br/>天然</div>
+                    </div>
+                    </div>
+                    <div className="text-xs text-textGray leading-relaxed bg-white/50 p-2 rounded-lg w-full">
+                    每100克鲈鱼蛋白质含量：18.6-19.5g，相当于3个鸡蛋或5杯牛奶的蛋白量
+                    </div>
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-[#e8e0d5] to-transparent my-6"></div>
+
+                <div className="px-1 mb-4">
+                    <h3 className="text-lg font-bold text-textDark font-serif mb-1">用户评价</h3>
+                    <p className="text-xs text-textGray">家庭首选</p>
+                </div>
+
+                <div className="mb-6 rounded-xl overflow-hidden shadow-md">
+                    <Carousel images={dishImages} aspectRatio="aspect-video" />
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    {[
+                    { text: "鱼肉紧实，一点不腥。全家都很喜欢！", author: "家庭主妇", role: "妈妈" },
+                    { text: "高蛋白低脂肪，增肌减脂首选，连续回购！", author: "健身爱好者", role: "达人" },
+                    { text: "零抗生素，孕妇也能放心吃。质量真的不错。", author: "准妈妈", role: "孕期" }
+                    ].map((review, i) => (
+                    <div key={i} className="bg-gradient-to-br from-white to-cream rounded-xl p-3 pl-4 border border-warm relative shadow-sm hover:shadow-md transition-all">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal rounded-l-xl"></div>
+                        <div className="text-xs text-textDark italic mb-2 leading-relaxed">"{review.text}"</div>
+                        <div className="flex justify-between items-center">
+                        <div className="text-[11px] text-textGray font-medium">- {review.author}</div>
+                        <div className="flex text-teal text-[10px]">
+                            ★★★★★
+                        </div>
+                        </div>
+                    </div>
+                    ))}
+                </div>
+                </div>
+            );
+        };
+
+        const Purchase = () => {
+            const [modalType, setModalType] = useState(null);
+
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[inherit] p-6 text-center animate-fadeIn pb-32">
+                <h1 className="text-4xl font-bold text-primary font-serif leading-tight mb-3 tracking-tight">
+                    清水生态<br />健康之选
+                </h1>
+                <p className="text-sm text-textGray mb-8 tracking-wide">
+                    专业养殖 | 权威背书 | 安心购买
+                </p>
+
+                <div className="flex flex-col gap-4 w-full max-w-[280px] mb-12">
+                    <button 
+                    onClick={() => setModalType('buy')}
+                    className="w-full h-12 bg-gradient-to-r from-primary to-teal text-white border-none text-[15px] font-bold rounded-xl font-serif shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                    <span>立即购买</span>
+                    </button>
+                    <button 
+                    onClick={() => setModalType('contact')}
+                    className="w-full h-12 bg-transparent text-accent border-2 border-accent text-[15px] font-bold rounded-xl font-serif hover:bg-accent hover:text-white transition-all active:scale-95"
+                    >
+                    联系合作
+                    </button>
+                </div>
+
+                <div className="text-[11px] text-textGray leading-relaxed space-y-4 max-w-[320px]">
+                    <div>
+                    <strong className="text-primary block mb-1 text-xs">上海绿佳元农业科技有限公司</strong>
+                    </div>
+                    <div>
+                    <strong className="text-primary block mb-1 text-xs">基地地址</strong>
+                    <p>宜兴西氿基地：无锡市宜兴市新街街道新乐村</p>
+                    <p>绍兴八福基地：绍兴市越城区孙端街道榆林村</p>
+                    </div>
+                    <div className="pt-4 border-t border-warm italic opacity-80 mt-4">
+                    每一条鱼都源于自然的馈赠<br/>也是人类遵循自然规律、与自然和谐共生的结果
+                    </div>
+                </div>
+
+                {/* Reusable Modal Content */}
+                <Modal isOpen={modalType === 'buy'} onClose={() => setModalType(null)}>
+                    <div className="flex flex-col items-center p-6">
+                    <h3 className="text-lg font-bold text-primary mb-4 font-serif">访问我们的店铺</h3>
+                    <div className="w-56 h-auto bg-gray-50 mb-3 rounded-lg overflow-hidden border border-gray-100 shadow-sm">
+                        <img src={`${BASE_URL}/douyin.jpg`} alt="抖音店铺" className="w-full h-full object-contain" />
+                    </div>
+                    <p className="text-xs text-textGray mt-2">长按保存图片或截图扫码访问</p>
+                    </div>
+                </Modal>
+
+                <Modal isOpen={modalType === 'contact'} onClose={() => setModalType(null)}>
+                    <div className="flex flex-col items-center p-6">
+                    <h3 className="text-lg font-bold text-accent mb-4 font-serif">关注微信公众号</h3>
+                    <div className="w-56 h-auto bg-gray-50 mb-3 rounded-lg overflow-hidden border border-gray-100 shadow-sm">
+                        <img src={`${BASE_URL}/weixin.jpg`} alt="微信二维码" className="w-full h-full object-contain" />
+                    </div>
+                    <p className="text-xs text-textGray mt-2">长按保存图片或截图扫码关注</p>
+                    </div>
+                </Modal>
+                </div>
+            );
+        };
+
+        // --- 4. Main App ---
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState(Tab.HOME);
+
+            useEffect(() => {
+                window.scrollTo(0, 0);
+            }, [activeTab]);
+
+            return (
+                <div className="min-h-[100dvh] w-full flex flex-col bg-gradient-to-br from-warm/30 to-cream text-textDark font-sans">
+                
+                <main className="flex-1 w-full max-w-md mx-auto bg-white shadow-xl min-h-[100dvh] relative">
+                    {activeTab === Tab.HOME && <Home setTab={setActiveTab} />}
+                    {activeTab === Tab.BREEDING && <Breeding />}
+                    {activeTab === Tab.REPORT && <Report />}
+                    {activeTab === Tab.REVIEW && <Review />}
+                    {activeTab === Tab.PURCHASE && <Purchase />}
+                </main>
+
+                <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
